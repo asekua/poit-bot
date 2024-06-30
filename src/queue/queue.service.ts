@@ -1,15 +1,15 @@
-import {Injectable} from '@nestjs/common';
-import {ConfigService} from '@nestjs/config';
-import {HttpService} from '@nestjs/axios';
-import {firstValueFrom} from 'rxjs';
-import {unlink, writeFile} from 'node:fs/promises';
-import {join} from 'path';
-import {getRandomValues} from 'crypto';
-import {cwd} from 'process';
-import {Workbook} from 'exceljs';
-import {InjectRepository} from '@nestjs/typeorm';
-import {Student} from './queue.entity';
-import {Repository} from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { unlink, writeFile } from 'node:fs/promises';
+import { join } from 'path';
+import { getRandomValues } from 'crypto';
+import { cwd } from 'process';
+import { Workbook } from 'exceljs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Student } from './queue.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class QueueService {
@@ -43,7 +43,7 @@ export class QueueService {
         const excelName = join(cwd(), 'public', 'excel', `excel${Date.now()}.xlsx`);
         try {
             const response = await firstValueFrom(
-                this.httpService.get(fileUrl, {responseType: 'stream'}),
+                this.httpService.get(fileUrl, { responseType: 'stream' }),
             );
             await writeFile(excelName, response.data);
             const workbook = new Workbook();
@@ -51,7 +51,7 @@ export class QueueService {
             await workbook.xlsx.readFile(excelName);
             const worksheet = workbook.getWorksheet(1);
             const rows = [];
-            worksheet.eachRow({includeEmpty: false}, (row) => {
+            worksheet.eachRow({ includeEmpty: false }, (row) => {
                 rows.push(row.getCell(1).value);
             });
 

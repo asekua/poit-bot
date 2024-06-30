@@ -11,7 +11,7 @@ export class QueueUpdate {
         private readonly queueService: QueueService,
     ) {}
 
-    @Hears(/exam/i)
+    @Hears(/^exam/i)
     public async formQueueList(@Ctx() ctx) {
         const list = await this.queueService.formQueueList(ctx.message.from.id);
         if (!list) {
@@ -36,25 +36,29 @@ export class QueueUpdate {
     ) {
         if (!caption) {
             next();
-        }
-        const [command, name] = caption.split(' ');
-        if (command === 'exam') {
-            if (
-                document.mime_type !==
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            ) {
-                await ctx.reply('Документ должен быть в формате excel');
-            } else {
-                const fileLink = await ctx.telegram.getFileLink(document.file_id);
-                const filename = name ? name : 'queue';
-                const buf = await this.queueService.formQueueExcel(filename, fileLink.toString());
-                if (!buf) {
-                    await ctx.reply('Произошла ошибка!');
+        } else {
+            const [command, name] = caption.split(' ');
+            if (command === 'exam') {
+                if (
+                    document.mime_type !==
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ) {
+                    await ctx.reply('Документ должен быть в формате excel');
                 } else {
-                    await ctx.replyWithDocument({
-                        source: buf,
-                        filename: `${filename}.xlsx`,
-                    });
+                    const fileLink = await ctx.telegram.getFileLink(document.file_id);
+                    const filename = name ? name : 'queue';
+                    const buf = await this.queueService.formQueueExcel(
+                        filename,
+                        fileLink.toString(),
+                    );
+                    if (!buf) {
+                        await ctx.reply('Произошла ошибка!');
+                    } else {
+                        await ctx.replyWithDocument({
+                            source: buf,
+                            filename: `${filename}.xlsx`,
+                        });
+                    }
                 }
             }
         }

@@ -7,11 +7,13 @@ import { Environment } from './environment.enum';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Group } from './echo/group.entity';
+import { session } from 'telegraf';
 import { TasksModule } from './tasks/tasks.module';
 import { UpdateModule } from './update/update.module';
 import { LoggerModule } from './logger/logger.module';
 import { QueueModule } from './queue/queue.module';
 import { Student } from './queue/queue.entity';
+import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
     imports: [
@@ -30,6 +32,7 @@ import { Student } from './queue/queue.entity';
             imports: [ConfigModule, UpdateModule],
             useFactory: async (configService: ConfigService) => ({
                 token: configService.get<string>('TELEGRAM_BOT_TOKEN'),
+                middlewares: [session()],
                 launchOptions:
                     configService.get<string>('NODE_ENV') === Environment.PRODUCTION
                         ? {
@@ -47,6 +50,7 @@ import { Student } from './queue/queue.entity';
         UpdateModule,
         QueueModule,
         LoggerModule,
+        CalendarModule,
     ],
     controllers: [AppController],
     providers: [],
