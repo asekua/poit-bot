@@ -16,7 +16,6 @@ export class CalendarScene {
         const today = new Date();
         const maxDate = new Date();
         maxDate.setMonth(today.getMonth() + 6);
-
         await ctx.reply(
             'Выберите дату',
             this.calendarService.setMinDate(today).setMaxDate(maxDate).getCalendar(),
@@ -28,7 +27,7 @@ export class CalendarScene {
         const date = ctx.match[0].replace('calendar-telegram-date-', '');
         await ctx.answerCbQuery();
         ctx.session.scheduleDialogDate = date;
-        await ctx.reply('Введите время в формате HH:MM, например 09:25');
+        await ctx.reply('Введите время в формате HH:MM, например 19:25');
     }
 
     @Action(/calendar-telegram-prev-[\d-]+/g)
@@ -79,16 +78,7 @@ export class CalendarScene {
     public async getTime(@Ctx() ctx) {
         const timeString = ctx.match[0];
         const targetDate = new Date(`${ctx.session.scheduleDialogDate}T${timeString}:00.000+03:00`);
-        const cronExr = this.taskService.dateToCron(targetDate);
-        this.taskService.addCronJob(
-            'Job',
-            async () => {
-                await ctx.reply('Напоминание!', {
-                    reply_to_message_id: ctx.session.scheduleDialogMessageId,
-                });
-            },
-            cronExr,
-        );
+        await this.taskService.addJob(targetDate, ctx.chat.id, ctx.session.scheduleDialogMessageId);
 
         await ctx.reply('Напоминание создано!');
         await ctx.scene.leave();

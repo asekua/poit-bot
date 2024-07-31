@@ -1,16 +1,15 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-@Entity('group')
+@Schema()
 export class Group {
-    @PrimaryGeneratedColumn()
-    id: string;
-
-    @Column({ name: 'chat_id' })
+    @Prop()
     public chatId: number;
 
-    @Column({ name: 'user_id' })
+    @Prop()
     public userId: number;
 
-    @Column()
+    @Prop()
     public username: string;
 }
+
+export const GroupSchema = SchemaFactory.createForClass(Group);

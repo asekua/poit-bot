@@ -7,9 +7,9 @@ import { join } from 'path';
 import { getRandomValues } from 'crypto';
 import { cwd } from 'process';
 import { Workbook } from 'exceljs';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectModel } from '@nestjs/mongoose';
 import { Student } from './queue.entity';
-import { Repository } from 'typeorm';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class QueueService {
@@ -19,8 +19,8 @@ export class QueueService {
     constructor(
         private readonly configService: ConfigService,
         private readonly httpService: HttpService,
-        @InjectRepository(Student)
-        private readonly studentRepository: Repository<Student>,
+        @InjectModel(Student.name)
+        private readonly studentModel: Model<Student>,
     ) {
         this.BOT_TOKEN = configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN');
         this.QUEUE_ADMINS = configService.getOrThrow<string>('QUEUE_ADMINS').split(',');
@@ -30,11 +30,7 @@ export class QueueService {
         if (!this.QUEUE_ADMINS.includes(userId.toString())) {
             return null;
         }
-        const students = await this.studentRepository.find({
-            select: {
-                lastName: true,
-            },
-        });
+        const students = await this.studentModel.find();
         const randomIndexes = this.randomIndexes(students.length);
         return randomIndexes.map((index) => students[index]);
     }

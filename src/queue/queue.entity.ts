@@ -1,10 +1,9 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-@Entity()
+@Schema()
 export class Student {
-    @PrimaryGeneratedColumn()
-    id: string;
-
-    @Column({ name: 'last_name' })
+    @Prop()
     public lastName: string;
 }
+
+export const StudentSchema = SchemaFactory.createForClass(Student);

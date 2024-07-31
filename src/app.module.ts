@@ -4,15 +4,11 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { EchoModule } from './echo/echo.module';
 import { AppController } from './app.controller';
 import { Environment } from './environment.enum';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
-import { Group } from './echo/group.entity';
+import { MongooseModule } from '@nestjs/mongoose';
 import { session } from 'telegraf';
 import { TasksModule } from './tasks/tasks.module';
 import { UpdateModule } from './update/update.module';
-import { LoggerModule } from './logger/logger.module';
 import { QueueModule } from './queue/queue.module';
-import { Student } from './queue/queue.entity';
 import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
@@ -21,24 +17,24 @@ import { CalendarModule } from './calendar/calendar.module';
             isGlobal: true,
             cache: true,
         }),
-        ScheduleModule.forRoot(),
-        TypeOrmModule.forRoot({
-            type: 'sqlite',
-            database: 'db/sqlite.db',
-            synchronize: true,
-            entities: [Group, Student],
+        MongooseModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                uri: configService.getOrThrow<string>('MONGO_URI'),
+            }),
+            inject: [ConfigService],
         }),
         TelegrafModule.forRootAsync({
             imports: [ConfigModule, UpdateModule],
             useFactory: async (configService: ConfigService) => ({
-                token: configService.get<string>('TELEGRAM_BOT_TOKEN'),
+                token: configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN'),
                 middlewares: [session()],
                 launchOptions:
                     configService.get<string>('NODE_ENV') === Environment.PRODUCTION
                         ? {
                               webhook: {
-                                  domain: configService.get<string>('DOMAIN'),
-                                  path: configService.get<string>('SECRET_PATH'),
+                                  domain: configService.getOrThrow<string>('DOMAIN'),
+                                  path: configService.getOrThrow<string>('SECRET_PATH'),
                               },
                           }
                         : {},
@@ -49,7 +45,6 @@ import { CalendarModule } from './calendar/calendar.module';
         TasksModule,
         UpdateModule,
         QueueModule,
-        LoggerModule,
         CalendarModule,
     ],
     controllers: [AppController],

@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { HttpModule } from '@nestjs/axios';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Student } from './queue.entity';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Student, StudentSchema } from './queue.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Student]), HttpModule],
+    imports: [
+        MongooseModule.forFeature([{ name: Student.name, schema: StudentSchema }]),
+        HttpModule,
+    ],
     providers: [QueueService],
     exports: [QueueService],
 })

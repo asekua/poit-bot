@@ -1,18 +1,16 @@
-import { InjectRepository } from '@nestjs/typeorm';
 import { Group } from './group.entity';
-import { Repository } from 'typeorm';
 import * as process from 'process';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { readdir } from 'node:fs/promises';
 import { join } from 'path';
 import { Injectable } from '@nestjs/common';
-import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class EchoService {
     constructor(
-        private readonly loggerService: LoggerService,
-        @InjectRepository(Group)
-        private readonly groupRepository: Repository<Group>,
+        @InjectModel(Group.name)
+        private readonly groupModel: Model<Group>,
     ) {}
 
     public async getLegend(): Promise<string> {
@@ -23,25 +21,14 @@ export class EchoService {
     }
 
     public async addMember(chatId: number, userId: number, username: string): Promise<void> {
-        const member = await this.groupRepository.findOne({
-            where: { chatId, userId },
-        });
+        const member = await this.groupModel.findOne({ chatId, userId });
         if (!member) {
-            const queryBuilder = this.groupRepository.createQueryBuilder('group');
-            const queryWithParams = queryBuilder
-                .insert()
-                .values([{ chatId, userId, username: username }])
-                .getQueryAndParameters();
-            const query = this.loggerService.mapQueryWithParameters(
-                queryWithParams[0],
-                queryWithParams[1],
-            );
-            await this.loggerService.log(query);
-            await this.groupRepository.save({ chatId, userId, username });
+            const newMember = await new this.groupModel({ chatId, userId, username: username });
+            await newMember.save();
         }
     }
 
     public async getChatMembers(chatId: number): Promise<Group[]> {
-        return await this.groupRepository.findBy({ chatId });
+        return this.groupModel.find({ chatId });
     }
 }

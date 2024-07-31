@@ -1,36 +1,58 @@
-import { Injectable } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { readFile, truncate } from 'node:fs/promises';
-import { CronJob } from 'cron';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Pulse } from '@pulsecron/pulse';
+import { ConfigService } from '@nestjs/config';
+import { InjectBot } from 'nestjs-telegraf';
+import { Context, Telegraf } from 'telegraf';
 
 @Injectable()
-export class TasksService {
-    constructor(private readonly schedulerRegistry: SchedulerRegistry) {}
+export class TasksService implements OnModuleInit, OnModuleDestroy {
+    private pulse: Pulse;
+    private connectionString: string;
 
-    public addCronJob(name: string, onTick, expression: string) {
-        const job = new CronJob(expression, onTick, null, false, 'Europe/Minsk');
-        this.schedulerRegistry.addCronJob(name, job);
-        job.start();
+    constructor(
+        @InjectBot() private readonly bot: Telegraf<Context>,
+        private readonly configService: ConfigService,
+    ) {}
+
+    async onModuleInit() {
+        this.connectionString = this.configService.get<string>('MONGO_PULSE_URI');
+
+        this.pulse = new Pulse({
+            db: { address: this.connectionString },
+            resumeOnRestart: true,
+        });
+
+        await this.pulse.start();
+        await this.restartJobs();
     }
 
-    public dateToCron(date: Date): string {
-        const minutes = date.getMinutes();
-        const hours = date.getHours();
-        const days = date.getDate();
-        const months = date.getMonth() + 1;
-        const dayOfWeek = date.getDay();
-
-        return `${minutes} ${hours} ${days} ${months} ${dayOfWeek}`;
+    private async restartJobs() {
+        const jobs = await this.pulse.jobs();
+        jobs.forEach((job) => {
+            const name = job.attrs.name;
+            this.pulse.define(name, this.jobCallback.bind(this));
+        });
     }
 
-    public async getLog(): Promise<Buffer> {
-        try {
-            const logPath = './database.txt';
-            const data = await readFile(logPath);
-            await truncate(logPath, 0);
-            return data;
-        } catch (err) {
-            console.error(err);
-        }
+    public async addJob(when: Date, chatId: number, messageId: string) {
+        const name = `Job-${new Date().toISOString()}`;
+        const job = this.pulse.create(name, { chatId, messageId });
+        this.pulse.define(name, this.jobCallback.bind(this));
+        await job.schedule(when).save();
+    }
+
+    private async jobCallback(job: any, done: any): Promise<void> {
+        const { chatId, messageId } = job.attrs.data;
+        await this.bot.telegram.sendMessage(chatId, 'Напоминание!', {
+            reply_parameters: {
+                message_id: messageId,
+            },
+        });
+        await job.remove();
+        done();
+    }
+
+    async onModuleDestroy() {
+        await this.pulse.stop();
     }
 }
